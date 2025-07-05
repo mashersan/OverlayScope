@@ -1,0 +1,36 @@
+﻿<Window x:Class="OverlayScope.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:OverlayScope"
+        mc:Ignorable="d"
+        Title="OverlayScope" Height="300" Width="400"
+        
+        WindowStyle="None" 
+        AllowsTransparency="True" 
+        ResizeMode="NoResize" 
+        Background="Transparent" 
+        Topmost="True"
+        Loaded="Window_Loaded"
+        KeyDown="Window_KeyDown"
+        KeyUp="Window_KeyUp"
+        PreviewKeyDown="Window_PreviewKeyDown"
+        Deactivated="Window_Deactivated">
+
+    <Grid>
+        <Image x:Name="CaptureImageControl" IsHitTestVisible="False" />
+        <Border x:Name="HighlightBorder" BorderBrush="Gold" BorderThickness="2" Visibility="Collapsed" IsHitTestVisible="False"/>
+        <Border x:Name="ControlBar" Background="#7F007ACC" VerticalAlignment="Top" Height="24" MouseDown="ControlBar_MouseDown" Visibility="Collapsed">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="ドラッグで移動" Foreground="White" VerticalAlignment="Center" Margin="5,0"/>
+                <Button Content="範囲変更" Click="ChangeAreaButton_Click" Margin="10,2"/>
+                <TextBlock Text="透過率:" Foreground="White" VerticalAlignment="Center" Margin="15,0,5,0" />
+                <Slider x:Name="OpacitySlider" Width="80" Minimum="0.3" Maximum="1.0" Value="1.0" VerticalAlignment="Center" ValueChanged="OpacitySlider_ValueChanged" />
+                <TextBlock Text="拡大率:" Foreground="White" VerticalAlignment="Center" Margin="15,0,5,0" />
+                <Slider x:Name="ScaleSlider" Width="80" Minimum="0.2" Maximum="5.0" Value="1.0" VerticalAlignment="Center" ValueChanged="ScaleSlider_ValueChanged" />
+                <Button Content="閉じる" Click="CloseButton_Click" Margin="15,2,5,2"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
