@@ -1,21 +1,16 @@
-MIT License
+このソフトウェアは、以下の条件の下で提供されます。
 
-Copyright (c) [year] [fullname]
+【許可事項】
+・本ソフトウェアを、個人・法人、商用・非商用を問わず、自由に使用すること。
+・個人的な目的で、本ソフトウェアを複製、改変すること。
+・本ソフトウェアを、内容に変更を加えない限り、無償で再配布すること。
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+【禁止事項】
+・本ソフトウェア、およびその複製や改変物を、有償で販売、譲渡すること。
+・本ソフトウェアに改変を加えたものを、制作者の許可なく再配布すること。
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+【保証の否認】
+本ソフトウェアは「現状のまま」提供されるものであり、制作者は、明示または黙示を問わず、その機能、性能、商品適格性、特定目的への適合性について一切の保証をしません。
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+【責任の制限】
+本ソフトウェアの使用または使用不能から生じるいかなる損害（逸失利益、事業の中断、情報の喪失などを含むがこれに限らない）についても、制作者は一切の責任を負いません。
