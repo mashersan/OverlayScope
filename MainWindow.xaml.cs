@@ -22,12 +22,10 @@ namespace OverlayScope
         private System.Drawing.Rectangle? _captureArea = null;
         private bool _isInOperationMode = false;
         private bool _isCtrlToggleCandidate = false;
-
         private bool _isTemporarilyHidden = false;
         private double _lastOpacityBeforeHiding = 1.0;
         private const double HIDDEN_OPACITY = 0.05;
-
-        private double _dpiScale = 1.0; // ★DPIスケール値を保持する変数
+        private double _dpiScale = 1.0;
         #endregion
 
         #region Constructor
@@ -42,13 +40,11 @@ namespace OverlayScope
         #region Window Events
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // ★DPIスケール値を取得する処理
             var source = PresentationSource.FromVisual(this);
             if (source?.CompositionTarget != null)
             {
                 _dpiScale = source.CompositionTarget.TransformToDevice.M11;
             }
-
             EnterTransparentMode();
             HandleStartupSettings();
         }
@@ -65,7 +61,6 @@ namespace OverlayScope
         #region Settings Logic
         private void HandleStartupSettings()
         {
-            // (この中のコードに変更はありません)
             if (Settings.Default.IsFirstLaunch)
             {
                 MessageBox.Show("最初にキャプチャする範囲をドラッグして選択してください。\n\nヒント: ウィンドウを選択後、Ctrlキーで操作モードを切り替えられます。", "OverlayScopeへようこそ", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -89,7 +84,6 @@ namespace OverlayScope
 
         private void ApplySavedSettings()
         {
-            // ★DPIスケールを考慮して設定を復元
             double scale = Settings.Default.ScaleFactor;
             _captureArea = new System.Drawing.Rectangle(
                 (int)Settings.Default.CaptureAreaLeft,
@@ -97,15 +91,11 @@ namespace OverlayScope
                 (int)Settings.Default.CaptureAreaWidth,
                 (int)Settings.Default.CaptureAreaHeight
             );
-
             this.Left = Settings.Default.WindowPositionLeft;
             this.Top = Settings.Default.WindowPositionTop;
             this.Opacity = Settings.Default.OpacityLevel;
-
-            // ウィンドウサイズは論理ピクセルベースのキャプチャ範囲から計算
             this.Width = (_captureArea.Value.Width / _dpiScale) * scale;
             this.Height = (_captureArea.Value.Height / _dpiScale) * scale;
-
             OpacitySlider.Value = this.Opacity;
             ScaleSlider.Value = scale;
         }
@@ -114,20 +104,15 @@ namespace OverlayScope
         {
             if (this.IsLoaded && _captureArea.HasValue)
             {
-                // 保存する座標は物理ピクセルのまま
                 Settings.Default.CaptureAreaLeft = _captureArea.Value.Left;
                 Settings.Default.CaptureAreaTop = _captureArea.Value.Top;
                 Settings.Default.CaptureAreaWidth = _captureArea.Value.Width;
                 Settings.Default.CaptureAreaHeight = _captureArea.Value.Height;
-
-                // ウィンドウ位置は論理ピクセルで保存
                 Settings.Default.WindowPositionLeft = this.Left;
                 Settings.Default.WindowPositionTop = this.Top;
-
                 Settings.Default.OpacityLevel = _isTemporarilyHidden ? _lastOpacityBeforeHiding : this.Opacity;
                 Settings.Default.ScaleFactor = ScaleSlider.Value;
                 Settings.Default.IsFirstLaunch = false;
-
                 Settings.Default.Save();
             }
         }
@@ -152,6 +137,12 @@ namespace OverlayScope
             HighlightBorder.Visibility = Visibility.Collapsed;
             this.Background = null;
             _isInOperationMode = false;
+
+            // ★変更: 透過モードに入った時に初めてリアルタイムキャプチャを開始する
+            if (!_captureTimer.IsEnabled && _captureArea.HasValue)
+            {
+                _captureTimer.Start();
+            }
         }
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
@@ -210,7 +201,59 @@ namespace OverlayScope
         #endregion
 
         #region Core Application Logic
+
+        /// <summary>
+        /// タイマーによって定期的に呼び出され、画面をキャプチャして表示を更新します。
+        /// </summary>
         private void CaptureTimer_Tick(object? sender, EventArgs e)
+        {
+            UpdateCaptureImage();
+        }
+
+        /// <summary>
+        /// 範囲選択ウィンドウを表示し、キャプチャ範囲を設定します。
+        /// </summary>
+        private void SelectCaptureArea()
+        {
+            SaveSettings();
+            _captureTimer.Stop(); // 範囲選択中はタイマーを確実に停止する
+            this.Visibility = Visibility.Hidden;
+
+            AreaSelectorWindow selector = new AreaSelectorWindow();
+            if (selector.ShowDialog() == true && selector.SelectedArea.Width > 0)
+            {
+                var rect = selector.SelectedArea;
+                _captureArea = new System.Drawing.Rectangle(
+                    (int)(rect.X * _dpiScale),
+                    (int)(rect.Y * _dpiScale),
+                    (int)(rect.Width * _dpiScale),
+                    (int)(rect.Height * _dpiScale)
+                );
+
+                this.Left = rect.X;
+                this.Top = rect.Y;
+                this.Width = rect.Width;
+                this.Height = rect.Height;
+
+                OpacitySlider.Value = 1.0;
+                ScaleSlider.Value = 1.0;
+
+                // ★変更: リアルタイム更新ではなく、一度だけ静止画を取得してプレビュー表示する
+                UpdateCaptureImage();
+            }
+            else
+            {
+                if (_captureArea.HasValue) { _captureTimer.Start(); }
+                else { this.Close(); }
+            }
+            this.Visibility = Visibility.Visible;
+            EnterOperationMode();
+        }
+
+        /// <summary>
+        /// 現在のキャプチャ範囲のスクリーンショットを1枚取得して表示します。
+        /// </summary>
+        private void UpdateCaptureImage()
         {
             if (_captureArea == null) return;
             try
@@ -226,44 +269,6 @@ namespace OverlayScope
                 _captureTimer.Stop();
                 MessageBox.Show($"画面のキャプチャ中にエラーが発生しました。\n{ex.Message}", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }
-
-        private void SelectCaptureArea()
-        {
-            SaveSettings();
-            _captureTimer.Stop();
-            this.Visibility = Visibility.Hidden;
-
-            AreaSelectorWindow selector = new AreaSelectorWindow();
-            if (selector.ShowDialog() == true && selector.SelectedArea.Width > 0)
-            {
-                var rect = selector.SelectedArea;
-
-                // ★DPIスケールを考慮して物理ピクセル座標を計算
-                _captureArea = new System.Drawing.Rectangle(
-                    (int)(rect.X * _dpiScale),
-                    (int)(rect.Y * _dpiScale),
-                    (int)(rect.Width * _dpiScale),
-                    (int)(rect.Height * _dpiScale)
-                );
-
-                // ウィンドウの位置とサイズは論理ピクセルで設定
-                this.Left = rect.X;
-                this.Top = rect.Y;
-                this.Width = rect.Width;
-                this.Height = rect.Height;
-
-                OpacitySlider.Value = 1.0;
-                ScaleSlider.Value = 1.0;
-                _captureTimer.Start();
-            }
-            else
-            {
-                if (_captureArea.HasValue) { _captureTimer.Start(); }
-                else { this.Close(); }
-            }
-            this.Visibility = Visibility.Visible;
-            EnterOperationMode();
         }
 
         private void ToggleTemporaryHide()
@@ -304,7 +309,6 @@ namespace OverlayScope
         {
             if (_captureArea.HasValue)
             {
-                // ウィンドウサイズは論理ピクセルベースのキャプチャ範囲から計算
                 this.Width = (_captureArea.Value.Width / _dpiScale) * e.NewValue;
                 this.Height = (_captureArea.Value.Height / _dpiScale) * e.NewValue;
             }
