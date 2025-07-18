@@ -21,7 +21,6 @@ namespace OverlayScope
         private readonly DispatcherTimer _captureTimer;
         private System.Drawing.Rectangle? _captureArea = null;
         private bool _isInOperationMode = false;
-        private bool _isCtrlToggleCandidate = false;
         private bool _isTemporarilyHidden = false;
         private double _lastOpacityBeforeHiding = 1.0;
         private const double HIDDEN_OPACITY = 0.05;
@@ -49,6 +48,11 @@ namespace OverlayScope
             HandleStartupSettings();
         }
 
+        private void Window_Activated(object sender, EventArgs e)
+        {
+            EnterOperationMode();
+        }
+
         private void Window_Deactivated(object sender, EventArgs e)
         {
             if (_isInOperationMode)
@@ -63,7 +67,7 @@ namespace OverlayScope
         {
             if (Settings.Default.IsFirstLaunch)
             {
-                MessageBox.Show("最初にキャプチャする範囲をドラッグして選択してください。\n\nヒント: ウィンドウを選択後、Ctrlキーで操作モードを切り替えられます。", "OverlayScopeへようこそ", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("最初にキャプチャする範囲をドラッグして選択してください。\n\nヒント: Alt+Tabキーでウィンドウを選択すると操作モードになります。", "OverlayScopeへようこそ", MessageBoxButton.OK, MessageBoxImage.Information);
                 SelectCaptureArea();
             }
             else
@@ -138,33 +142,13 @@ namespace OverlayScope
             this.Background = null;
             _isInOperationMode = false;
 
-            // ★変更: 透過モードに入った時に初めてリアルタイムキャプチャを開始する
             if (!_captureTimer.IsEnabled && _captureArea.HasValue)
             {
                 _captureTimer.Start();
             }
         }
 
-        private void Window_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (!e.IsRepeat && (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl))
-            {
-                if (Keyboard.Modifiers == ModifierKeys.Control)
-                {
-                    _isCtrlToggleCandidate = true;
-                }
-            }
-        }
-
-        private void Window_KeyUp(object sender, KeyEventArgs e)
-        {
-            if (_isCtrlToggleCandidate && (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl))
-            {
-                if (_isInOperationMode) EnterTransparentMode();
-                else EnterOperationMode();
-            }
-            _isCtrlToggleCandidate = false;
-        }
+        // Ctrlキーによるトグルは廃止したため、KeyDownとKeyUpは不要
 
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
         {
@@ -201,22 +185,15 @@ namespace OverlayScope
         #endregion
 
         #region Core Application Logic
-
-        /// <summary>
-        /// タイマーによって定期的に呼び出され、画面をキャプチャして表示を更新します。
-        /// </summary>
         private void CaptureTimer_Tick(object? sender, EventArgs e)
         {
             UpdateCaptureImage();
         }
 
-        /// <summary>
-        /// 範囲選択ウィンドウを表示し、キャプチャ範囲を設定します。
-        /// </summary>
         private void SelectCaptureArea()
         {
             SaveSettings();
-            _captureTimer.Stop(); // 範囲選択中はタイマーを確実に停止する
+            _captureTimer.Stop();
             this.Visibility = Visibility.Hidden;
 
             AreaSelectorWindow selector = new AreaSelectorWindow();
@@ -224,21 +201,15 @@ namespace OverlayScope
             {
                 var rect = selector.SelectedArea;
                 _captureArea = new System.Drawing.Rectangle(
-                    (int)(rect.X * _dpiScale),
-                    (int)(rect.Y * _dpiScale),
-                    (int)(rect.Width * _dpiScale),
-                    (int)(rect.Height * _dpiScale)
+                    (int)(rect.X * _dpiScale), (int)(rect.Y * _dpiScale),
+                    (int)(rect.Width * _dpiScale), (int)(rect.Height * _dpiScale)
                 );
 
-                this.Left = rect.X;
-                this.Top = rect.Y;
-                this.Width = rect.Width;
-                this.Height = rect.Height;
+                this.Left = rect.X; this.Top = rect.Y;
+                this.Width = rect.Width; this.Height = rect.Height;
 
-                OpacitySlider.Value = 1.0;
-                ScaleSlider.Value = 1.0;
+                OpacitySlider.Value = 1.0; ScaleSlider.Value = 1.0;
 
-                // ★変更: リアルタイム更新ではなく、一度だけ静止画を取得してプレビュー表示する
                 UpdateCaptureImage();
             }
             else
@@ -248,11 +219,15 @@ namespace OverlayScope
             }
             this.Visibility = Visibility.Visible;
             EnterOperationMode();
+
+            // ★★★ ここが修正箇所です ★★★
+            // 処理が一段落したタイミングで、強制的にフォーカスを設定する
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                Keyboard.Focus(this);
+            }), DispatcherPriority.Input);
         }
 
-        /// <summary>
-        /// 現在のキャプチャ範囲のスクリーンショットを1枚取得して表示します。
-        /// </summary>
         private void UpdateCaptureImage()
         {
             if (_captureArea == null) return;

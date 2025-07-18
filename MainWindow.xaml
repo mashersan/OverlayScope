@@ -13,9 +13,8 @@
         Background="Transparent" 
         Topmost="True"
         Loaded="Window_Loaded"
-        KeyDown="Window_KeyDown"
-        KeyUp="Window_KeyUp"
         PreviewKeyDown="Window_PreviewKeyDown"
+        Activated="Window_Activated"
         Deactivated="Window_Deactivated">
 
     <Grid>
@@ -34,3 +33,4 @@
         </Border>
     </Grid>
 </Window>
+    
