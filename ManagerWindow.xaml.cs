@@ -1,10 +1,16 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
+using System.Net.Http;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
-using System.Runtime.InteropServices;
 
 namespace OverlayScope
 {
@@ -20,7 +26,22 @@ namespace OverlayScope
         /// </summary>
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool SetForegroundWindow(System.IntPtr hWnd);
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        #endregion
+
+        #region Private Nested Classes
+
+        /// <summary>
+        /// Webサーバーから取得するバージョン情報JSONを格納するためのクラス。
+        /// </summary>
+        private class UpdateInfo
+        {
+            public string? latestVersion { get; set; }
+            public string? releaseNotes { get; set; }
+            public string? githubUrl { get; set; }
+            public string? websiteUrl { get; set; }
+        }
 
         #endregion
 
@@ -34,7 +55,92 @@ namespace OverlayScope
             InitializeComponent();
             LoadProfiles();
             this.DataContext = this; // XAMLがこのクラスのプロパティを参照できるように設定
+
+            // ウィンドウの表示が完了したタイミングで、更新確認処理を開始する
+            this.ContentRendered += ManagerWindow_ContentRendered;
         }
+
+        #region Window Events
+
+        /// <summary>
+        /// ウィンドウの表示完了後に一度だけ呼び出されるイベントハンドラ。
+        /// </summary>
+        private async void ManagerWindow_ContentRendered(object? sender, EventArgs e)
+        {
+            // 更新確認がUIスレッドをブロックしないように非同期で実行
+            await CheckForUpdatesAsync();
+        }
+
+        /// <summary>
+        /// 管理ウィンドウが閉じられる時の処理。
+        /// </summary>
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            // 現在のプロファイル一覧をファイルに保存
+            SettingsManager.SaveProfiles(Profiles.ToList());
+
+            // 開いているすべてのオーバーレイウィンドウを閉じる
+            foreach (var profile in Profiles.ToList())
+            {
+                profile.ActiveWindow?.Close();
+            }
+        }
+
+        #endregion
+
+        #region Update Check Logic
+
+        /// <summary>
+        /// Webサーバーにバージョン情報を問い合わせ、新しいバージョンがあればユーザーに通知します。
+        /// </summary>
+        private async Task CheckForUpdatesAsync()
+        {
+            // バージョン情報が置かれているURL
+            string versionUrl = "http://masherhouse.com/wp-content/uploads/2025/08/version.json";
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    // JSONファイルを非同期でダウンロード
+                    string json = await client.GetStringAsync(versionUrl);
+                    var updateInfo = JsonSerializer.Deserialize<UpdateInfo>(json);
+
+                    if (updateInfo?.latestVersion == null) return;
+
+                    // アプリ自身のバージョンを取得
+                    var currentVersion = Assembly.GetExecutingAssembly().GetName().Version;
+                    if (currentVersion == null) return;
+
+                    var latestVersion = new Version(updateInfo.latestVersion);
+
+                    // Webサーバー上のバージョンの方が新しければ、ユーザーに通知
+                    if (latestVersion > currentVersion)
+                    {
+                        var dialog = new UpdateNotificationWindow(updateInfo.latestVersion, updateInfo.releaseNotes ?? "");
+                        dialog.Owner = this;
+                        dialog.ShowDialog();
+
+                        // ダイアログの結果に応じてダウンロードページを開く
+                        string urlToOpen = "";
+                        if (dialog.Result == UpdateActionResult.GoToGitHub) { urlToOpen = updateInfo.githubUrl ?? ""; }
+                        else if (dialog.Result == UpdateActionResult.GoToWebsite) { urlToOpen = updateInfo.websiteUrl ?? ""; }
+
+                        if (!string.IsNullOrEmpty(urlToOpen))
+                        {
+                            Process.Start(new ProcessStartInfo(urlToOpen) { UseShellExecute = true });
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // 更新の確認中にエラーが発生してもアプリの起動は妨げない (例: オフライン時)
+            }
+        }
+
+        #endregion
+
+        #region Profile Management
 
         /// <summary>
         /// JSONファイルからプロファイルの一覧を読み込みます。
@@ -52,8 +158,7 @@ namespace OverlayScope
         {
             var newProfile = new OverlayProfile();
 
-            // 範囲選択中は管理ウィンドウを非表示にする
-            this.Hide();
+            this.Hide(); // 範囲選択中は管理ウィンドウを非表示にする
             AreaSelectorWindow selector = new AreaSelectorWindow();
             if (selector.ShowDialog() == true && selector.SelectedArea.Width > 0)
             {
@@ -66,11 +171,9 @@ namespace OverlayScope
 
                 Profiles.Add(newProfile);
                 newProfile.IsActive = true;
-                ToggleOverlay(newProfile); // 新しいウィンドウを表示
-                ActivateOverlay(newProfile); // 作成したウィンドウをアクティブ化
+                ToggleOverlay(newProfile); // 新しいウィンドウを表示・アクティブ化
             }
-            // 範囲選択が終わったら管理ウィンドウを再表示
-            this.Show();
+            this.Show(); // 範囲選択が終わったら管理ウィンドウを再表示
         }
 
         /// <summary>
@@ -127,10 +230,11 @@ namespace OverlayScope
                 if (profile.ActiveWindow == null)
                 {
                     var overlay = new MainWindow(profile);
-                    overlay.Owner = this; // 管理ウィンドウをオーナーに設定
+                    overlay.Owner = this;
                     profile.ActiveWindow = overlay;
                     overlay.Show();
                 }
+                ActivateOverlay(profile);
             }
             else
             {
@@ -155,19 +259,6 @@ namespace OverlayScope
             }
         }
 
-        /// <summary>
-        /// 管理ウィンドウが閉じられる時の処理。
-        /// </summary>
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            // 現在のプロファイル一覧をファイルに保存
-            SettingsManager.SaveProfiles(Profiles.ToList());
-
-            // 開いているすべてのオーバーレイウィンドウを閉じる
-            foreach (var profile in Profiles.ToList())
-            {
-                profile.ActiveWindow?.Close();
-            }
-        }
+        #endregion
     }
 }

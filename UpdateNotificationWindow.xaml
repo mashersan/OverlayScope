@@ -1,0 +1,35 @@
+﻿<Window x:Class="OverlayScope.UpdateNotificationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:OverlayScope"
+        mc:Ignorable="d"
+        Title="アップデートのお知らせ" Height="250" Width="400"
+        WindowStartupLocation="CenterScreen" ResizeMode="NoResize" ShowInTaskbar="False">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" FontWeight="Bold">
+            <Run Text="新しいバージョン"/>
+            <Run x:Name="VersionText" Text="1.0.0"/>
+            <Run Text="が利用可能です。"/>
+        </TextBlock>
+
+        <TextBlock Grid.Row="1" Text="更新内容:" Margin="0,10,0,5"/>
+
+        <TextBox Grid.Row="2" x:Name="ReleaseNotesText" IsReadOnly="True" VerticalScrollBarVisibility="Auto" 
+                 TextWrapping="Wrap" Text="リリースノート"/>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="GitHub" Width="80" Margin="5" Click="GitHubButton_Click"/>
+            <Button Content="Webサイト" Width="80" Margin="5" Click="WebsiteButton_Click"/>
+            <Button Content="後で" Width="80" Margin="5" IsCancel="True" Click="LaterButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
