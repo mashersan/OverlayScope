@@ -1,0 +1,57 @@
+﻿<Window x:Class="OverlayScope.ManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:OverlayScope"
+        mc:Ignorable="d"
+        Title="OverlayScope マネージャー" Height="450" Width="420" Closing="Window_Closing">
+    <Window.Resources>
+        <local:BoolToOnOffConverter x:Key="BoolToOnOffConverter" />
+        <local:IndexToNumberConverter x:Key="IndexToNumberConverter" />
+    </Window.Resources>
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="設定プロファイル" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+
+        <ListBox Grid.Row="1" x:Name="ProfilesListBox" ItemsSource="{Binding Profiles}" 
+                 HorizontalContentAlignment="Stretch" AlternationCount="{Binding Profiles.Count}">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="30"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" VerticalAlignment="Center" FontWeight="Bold"
+                                   Text="{Binding Path=(ItemsControl.AlternationIndex), 
+                                          RelativeSource={RelativeSource AncestorType=ListBoxItem}, 
+                                          Converter={StaticResource IndexToNumberConverter}, 
+                                          StringFormat=D3}"/>
+
+                        <TextBox Grid.Column="1" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="10,0" FontSize="14"/>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <ToggleButton Content="{Binding IsActive, Converter={StaticResource BoolToOnOffConverter}}" 
+                                          IsChecked="{Binding IsActive}"
+                                          Click="Toggle_Click"
+                                          Tag="{Binding}"
+                                          Width="50" Margin="5,0"/>
+                            <Button Content="設定変更" Click="Settings_Click" Tag="{Binding}" IsEnabled="{Binding IsActive}" Margin="0,0,5,0"/>
+                            <Button Content="削除" Click="Delete_Click" Tag="{Binding}"/>
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Button Grid.Row="1" Content="新規作成" Click="CreateNew_Click" Width="100" Height="30" 
+                HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="5"/>
+    </Grid>
+</Window>
