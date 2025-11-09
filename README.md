@@ -156,3 +156,14 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+### 📦 依存ライブラリのライセンス (Third-Party Licenses)
+
+本ソフトウェアは、以下のサードパーティ製コンポーネント（.NETライブラリ）を利用しており、これらは OverlayScope.exe に同梱されています。これらのコンポーネントも（本プロジェクトと互換性のある）MITライセンスの下で提供されています。
+
+* **Component: .NET (Core) Libraries (System.Drawing.Common, WPF libraries, etc.)**
+* **Copyright (c) .NET Foundation and Contributors**
+* **License: The MIT License (MIT)**
+    * ライセンス条文は、上記「MIT ライセンス条文 (全文)」の著作権者名を .NET Foundation and Contributors に読み替えたものに準じます。
